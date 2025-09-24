@@ -5,43 +5,6 @@
 
 using namespace std;
 
-// Function prototypes
-string getPlayerChoice();
-string getComputerChoice();
-string determineWinner(const string& playerChoice, const string& computerChoice);
-void updateScores(const string& winner, int& playerScore, int& computerScore);
-void displayTournamentWinner(int playerScore, int computerScore);
-
-int main() {
-	srand(static_cast<unsigned int>(time(0))); // seed random number generator
-
-	int playerScore = 0, computerScore = 0;
-	string playerChoice, computerChoice, winner;
-
-	cout << "Welcome to the Rock, Paper, Scissors Tournament" << endl;
-
-	while (true) {
-		playerChoice = getPlayerChoice();
-
-		if (playerChoice == "quit") {
-			break; // end tournament
-		}
-
-		computerChoice = getComputerChoice();
-		cout << "Computer chose: " << computerChoice << endl;
-
-		winner = determineWinner(playerChoice, computerChoice);
-		cout << "Round result: " << winner << endl;
-
-		updateScores(winner, playerScore, computerScore);
-
-		cout << "Current Scores - You: " << playerScore << " | Computer: " << computerScore << "\n\n";
-	}
-
-	displayTournamentWinner(playerScore, computerScore);
-	return 0;
-}
-
 // function to get and validate player choice
 string getPlayerChoice() {
 	string choice;
@@ -102,4 +65,34 @@ void displayTournamentWinner(int playerScore, int computerScore) {
 		cout << "Computer wins the tournament" << endl;
 	else
 		cout << "The tournament ends in a draw" << endl;
+}
+
+int main() {
+	srand(static_cast<unsigned int>(time(0))); // seed random number generator
+
+	int playerScore = 0, computerScore = 0;
+	string playerChoice, computerChoice, winner;
+
+	cout << "Welcome to the Rock, Paper, Scissors Tournament" << endl;
+
+	while (true) {
+		playerChoice = getPlayerChoice();
+
+		if (playerChoice == "quit") {
+			break; // end tournament
+		}
+
+		computerChoice = getComputerChoice();
+		cout << "Computer chose: " << computerChoice << endl;
+
+		winner = determineWinner(playerChoice, computerChoice);
+		cout << "Round result: " << winner << endl;
+
+		updateScore(winner, playerScore, computerScore);
+
+		cout << "Current Scores - You: " << playerScore << " | Computer: " << computerScore << "\n\n";
+	}
+
+	displayTournamentWinner(playerScore, computerScore);
+	return 0;
 }
