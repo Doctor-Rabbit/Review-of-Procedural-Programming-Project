@@ -1,98 +1,120 @@
 #include <iostream>
+#include <fstream>
+#include <iomanip>
 #include <string>
-#include <cstdlib> // For rand() and srand()
-#include <ctime> // For time()
-
 using namespace std;
 
-// function to get and validate player choice
-string getPlayerChoice() {
-	string choice;
-	while (true) {
-		cout << "Enter rock, paper, scissors, or quit: ";
-		cin >> choice;
+// global constants
+const int Max_Students = 200; // capacity; file may be fewer
+const int numTests = 5;
 
-		// convert input to lowercase for robustness
-		for (char& c : choice) c = tolower(c);
-
-		if (choice == "rock" || choice == "paper" || choice == "scissors" || choice == "quit") {
-			return choice;
-		}
-		else {
-			cout << "Invalid choice. Please try again." << endl;
-		}
-	}
-}
-
-// function yo generate computer choice
-string getComputerChoice() {
-	int randomNum = rand() % 3 + 1;
-	switch (randomNum) {
-	case 1: return "rock";
-	case 2: return "paper";
-	default: return "scissors";
-	}
-}
-
-// funtion to determine winner of the round
-string determineWinner(const string& playerChoice, const string& computerChoice) {
-	if (playerChoice == computerChoice)
-		return "draw";
-	if ((playerChoice == "rock" && computerChoice == "scissors") || (playerChoice == "scissors" && computerChoice == "paper") || (playerChoice == "paper" && computerChoice == "rock")) {
-		return "player";
-	}
-	else {
-		return "computer";
-	}
-}
-
-// function to update scores
-void updateScore(const string& winner, int& playerScore, int& computerScore) {
-	if (winner == "player")
-		playerScore++;
-	else if (winner == "computer")
-		computerScore++;
-}
-
-// function to display final results
-void displayTournamentWinner(int playerScore, int computerScore) {
-	cout << "\n==== TOURNAMENT RESULTS ====" << endl;
-	cout << "Final Scores - You: " << playerScore << " | Computer: " << computerScore << endl;
-
-	if (playerScore > computerScore)
-		cout << "Congratulations! you win the tournament" << endl;
-	else if (computerScore > playerScore)
-		cout << "Computer wins the tournament" << endl;
-	else
-		cout << "The tournament ends in a draw" << endl;
-}
+// function prototypes
+int readData(ifstream& in, string names[], double scores[][numTests], int maxStudents);
+void computeAverages(const double scores[][numTests], int count, double avgs[]);
+char letterFromAverage(double avg);
+void printReport(const string names[], const double avgs[], int count);
 
 int main() {
-	srand(static_cast<unsigned int>(time(0))); // seed random number generator
-
-	int playerScore = 0, computerScore = 0;
-	string playerChoice, computerChoice, winner;
-
-	cout << "Welcome to the Rock, Paper, Scissors Tournament" << endl;
-
-	while (true) {
-		playerChoice = getPlayerChoice();
-
-		if (playerChoice == "quit") {
-			break; // end tournament
-		}
-
-		computerChoice = getComputerChoice();
-		cout << "Computer chose: " << computerChoice << endl;
-
-		winner = determineWinner(playerChoice, computerChoice);
-		cout << "Round result: " << winner << endl;
-
-		updateScore(winner, playerScore, computerScore);
-
-		cout << "Current Scores - You: " << playerScore << " | Computer: " << computerScore << "\n\n";
+	// opens the input file
+	ifstream fin("StudentGrades.txt");
+	if (!fin) {
+		cerr << "Error: could not open input file.\n";
+		return 1;
 	}
 
-	displayTournamentWinner(playerScore, computerScore);
+	// parallel arrays
+	string names[Max_Students];
+	double scores[Max_Students][numTests];
+	double avgs[Max_Students];
+
+	// read data
+	int studentCount = readData(fin, names, scores, Max_Students);
+	fin.close();
+
+	if (studentCount == 0) {
+		cout << "Nostudent records found.\n";
+		return 0;
+	}
+
+	// computes averages then prints report
+	computeAverages(scores, studentCount, avgs);
+	printReport(names, avgs, studentCount);
+
 	return 0;
+}
+
+// reads names and NumTests scores per student into parallel arrays
+// returns the number of student records actually read
+int readData(ifstream& in, string names[], double scores[][numTests], int maxStudents) {
+	int count = 0;
+	string line;
+	while (count < maxStudents && getline(in, line)) {
+		if (line.empty()) continue; // skips blank lines
+
+		// create a stringstream to parse this line
+		size_t lastSpace = line.find_last_of(" ");
+		if (lastSpace == string::npos) continue; // skip invalid lines
+
+		// reads scores from the end of the line
+		// split into tokens, last numTests tokens = scores, rest = name
+		double tempScores[numTests];
+		size_t pos = line.size();
+		int scoresFound = 0;
+
+		// parse backwards for numTests scores
+		while (scoresFound < numTests && lastSpace != string::npos) {
+			string token = line.substr(lastSpace + 1, pos - lastSpace - 1);
+			tempScores[numTests - 1 - scoresFound] = stod(token);
+			scoresFound++;
+
+			pos = lastSpace;
+			if (pos == 0) break;
+			lastSpace = line.find_last_of(" ", pos - 1);
+		}
+
+		if (scoresFound != numTests) continue; // incomplete record = skip
+
+		names[count] = line.substr(0, pos); // remaining part is the name
+
+		for (int j = 0; j < numTests; ++j) // copy scores into 2d array
+			scores[count][j] = tempScores[j];
+
+		++count;
+	}
+	return count;
+}
+
+// computes per-student averages from the scores array
+void computeAverages(const double scores[][numTests], int count, double avgs[]) {
+	for (int i = 0; i < count; ++i) {
+		double sum = 0.0;
+			for (int j = 0; j < numTests; ++j) sum += scores[i][j];
+		avgs[i] = sum / numTests;
+	}
+}
+
+// converts numeric average to a letter grade
+char letterFromAverage(double avg) {
+	if (avg >= 90.0) return 'A';
+	if (avg >= 80.0) return 'B';
+	if (avg >= 70.0) return 'C';
+	if (avg >= 60.0) return 'D';
+	return 'F';
+}
+
+// prints report
+void printReport(const string names[], const double avgs[], int count) {
+	const int NAME_W = 15;
+	cout << left << setw(NAME_W) << "Student"
+		<< right << setw(10) << "Average"
+		<< setw(10) << "Grade" << '\n';
+	cout << string(NAME_W + 20, '-') << '\n';
+
+	cout << fixed << setprecision(1);
+	for (int i = 0; i < count; ++i) {
+		cout << left << setw(NAME_W) << names[i]
+			<< right << setw(10) << avgs[i]
+			<< setw(10) << letterFromAverage(avgs[i])
+			<< '\n';
+	}
 }
